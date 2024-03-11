@@ -1,0 +1,72 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: JLH
+'Project Start Date: 6/2/2011
+'Hooks:
+'  12040, 12450
+'Notes:
+'  On the lost focus of the Part field, the Revision field should fill in with the max revision for that part number. No changes need to be made to the browser.
+
+'Edit:  Project 323  Quote 2560
+'Date: 6/12/2014 by SKT
+'For DeJong Manufacturing
+'Had to run 1Shot CVOEPPC1 to get the hooks to fire again.
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.CallSub(Load)
+
+Program.Sub.Main.End
+
+Program.Sub.Load.Start
+V.Local.sError.Declare(String)
+V.Local.sQuery.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sRev.Declare(String)
+
+F.Intrinsic.Control.SetErrorHandler("Create_Error")
+
+
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12040")
+	V.Local.sPart.Set(V.Passed.000052)
+F.Intrinsic.Control.Else
+	V.Local.sPart.Set(V.Passed.000071)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.RPad(V.Local.sPart," ",17,V.Local.sPart)
+
+F.Intrinsic.String.Concat("Select top 1 * from INVENTORY_MSTR where PART like '%",V.local.sPart,"%' order by PART DESC",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRO("rst",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+	V.Local.sPart.Set(V.local.sPart)
+	F.Intrinsic.String.Mid(V.ODBC.conx!rst.FieldVal!Part,18,V.Local.sRev)
+	F.Intrinsic.Control.If(V.Caller.Hook,=,"12040")
+		V.Passed.000053.Set(V.Local.sRev)
+	F.Intrinsic.Control.Else
+		V.Passed.000072.Set(V.Local.sRev)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Create_Error")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Concat("Error Occured",V.Ambient.ErrorDescription,V.local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndIf
+
+Program.Sub.Load.End
+
+Program.Sub.Comments.Start
+${$0$}$ATG_4094_Order_Entry_Rev$}$RLK$}$5/27/2016
+${$1$}$$}$$}$1$}$12450$}$OES0201F-PART-NUMBER-HOOK$}$5/27/2016 1:54:53 PM$}$(Program: ORD201; Screen: OES0201F)
+
+${$1$}$$}$$}$0$}$12040$}$OES0201I-PART-NUMBER-HOOK$}$5/27/2016 1:54:36 PM$}$(Program: ORD201; Screen: OES0201I)
+
+Program.Sub.Comments.End
+

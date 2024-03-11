@@ -1,0 +1,101 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: JLH
+'Project Start Date: 6/2/2011
+'Hooks:
+'  12120, 12490
+'Notes:
+'  When the Part, Revision, Location, and Order Quantity fields are filled in, return the price from the quote line where the quantity is >= the quantity from the quote lines. For example, if the quote lines were 1 at $10, 10 at $9.50, and
+'100 at $9, and a quantity of 50 was entered, the price would be $9.50.
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.CallSub(Load)
+
+Program.Sub.Main.End
+
+Program.Sub.Load.Start
+V.Local.sError.Declare(String)
+V.Local.sQuery.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sCustomer.Declare(String)
+V.Local.sPrice.Declare(String)
+V.Local.sRev.Declare(String)
+V.Local.sOrder.Declare(String)
+V.Local.sQuant.Declare(String)
+
+F.Intrinsic.Control.SetErrorHandler("Create_Error")
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12120")
+	V.Local.sOrder.Set(V.passed.000060)
+	V.Local.sPart.Set(V.Passed.000052)
+	V.Local.sRev.Set(V.passed.000053)
+	V.Local.sQuant.Set(V.passed.000007)
+F.Intrinsic.Control.Else
+	V.Local.sPart.Set(V.Passed.000071)
+	V.Local.sOrder.Set(V.Passed.000005)
+	V.Local.sRev.Set(V.Passed.000072)
+	V.Local.sQuant.Set(V.passed.000001)
+F.Intrinsic.Control.EndIf
+
+
+F.Intrinsic.Control.If(V.local.sPart,<>,"")
+F.Intrinsic.Control.AndIf(V.local.sQuant,<>,"")
+
+	F.Intrinsic.String.Concat("Select distinct(customer) from order_lines where order_no like '%",V.local.sOrder,"'",V.Local.sQuery)
+	F.ODBC.Connection!conx.OpenRecordsetRO("rst",V.Local.sQuery)
+	F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+		V.local.sCustomer.Set(V.ODBC.conx!rst.FieldVal!EXPR_1)
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conx!rst.Close
+	
+
+	F.Intrinsic.String.GSSPartString(V.local.sPart,V.local.sRev,V.Local.sPart)
+
+	F.Intrinsic.String.Concat("Select * From OE_C_PART_P_BRK where part='",V.Local.sPart,"'",V.Local.sQuery)
+	F.ODBC.Connection!conx.OpenRecordsetRO("rstBRK",V.Local.sQuery)
+	F.Intrinsic.Control.If(V.ODBC.conx!rstBRK.EOF,=,True)
+
+		F.Intrinsic.String.Concat("Select * From OE_C_PART_P_BRK where part='",V.Local.sPart,"'",V.Local.sQuery)
+		F.ODBC.Connection!conx.OpenRecordsetRO("rstPrice",V.Local.sQuery)
+		F.Intrinsic.Control.If(V.ODBC.conx!rstPrice.EOF,=,True)
+
+			F.Intrinsic.String.Concat("Select top 1 price from quote_lines where customer='",V.Local.sCustomer,"' and Part='",V.Local.sPart,"' and qty_quoted <='",V.local.sQuant,"' order by qty_quoted desc",V.Local.sQuery)
+			F.ODBC.Connection!conx.OpenRecordsetRO("rst",V.Local.sQuery)
+			F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+				F.Intrinsic.Control.If(V.Caller.Hook,=,"12120")
+					V.passed.000009.Set(V.ODBC.conx!rst.FieldVal!PRICE)
+				F.Intrinsic.Control.Else
+					V.passed.000067.Set(V.ODBC.conx!rst.FieldVal!PRICE)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+			F.ODBC.conx!rst.Close
+		F.Intrinsic.Control.EndIf
+		F.ODBC.conx!rstPrice.Close
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conx!rstBRK.Close
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Create_Error")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Concat("Error Occured",V.Ambient.ErrorDescription,V.local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndIf
+
+Program.Sub.Load.End
+
+Program.Sub.Comments.Start
+${$0$}$ATG_4094_Order_Entry_Qty$}$RLK$}$5/27/2016
+${$1$}$$}$$}$1$}$12490$}$OES0201F-QTY-ORDERED-HOOK$}$5/27/2016 1:58:41 PM$}$(Program: ORD201; Screen: OES0201F)
+
+${$1$}$$}$$}$0$}$12120$}$OES0201I-QTY-ORDERED-HOOK$}$5/27/2016 1:58:17 PM$}$(Program: ORD201; Screen: OES0201I)
+
+Program.Sub.Comments.End
+

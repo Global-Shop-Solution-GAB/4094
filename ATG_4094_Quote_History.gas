@@ -1,0 +1,89 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: JLH
+'Project Start Date: 6/2/2011
+'Hooks:
+'  12420
+'Notes:
+'  The hook for a script button needs to be activated and when clicked, open Quote History(QTE504), calling the part number entered on ORD201.
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12410")
+	F.Intrinsic.Control.CallSub(Load)
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,"12620")
+	F.Intrinsic.Control.CallSub(Load)
+F.Intrinsic.Control.Else
+	V.Passed.000162.Set("Quote History")
+F.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.Load.Start
+V.Local.sError.Declare(String)
+V.Local.sQuery.Declare(String)
+V.Local.sCustomer.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sParam.Declare(String)
+V.Local.sLoc.Declare(String)
+V.Local.sDesc.Declare(String)
+V.Local.sOrder.Declare(String)
+V.Local.sRev.Declare(String)
+
+F.Intrinsic.Control.SetErrorHandler("Create_Error")
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12410")
+	V.Local.sOrder.Set(V.Passed.000060)
+	V.Local.sPart.Set(V.passed.000052)
+	V.Local.srev.Set(V.Passed.000053)
+	V.Local.sDesc.Set(V.Passed.000056)
+F.Intrinsic.Control.Else
+	V.Local.sOrder.Set(V.Passed.000005)
+	V.Local.sPart.Set(V.Passed.000071)
+	V.Local.sRev.Set(V.Passed.000072)
+	V.Local.sDesc.Set(V.Passed.000003)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Concat("Select distinct(customer) from order_lines where order_no like '%",V.local.sOrder,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRO("rst",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,False)
+	V.Local.sCustomer.Set(V.ODBC.conx!rst.FieldVal!EXPR_1)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rst.Close
+
+
+F.Intrinsic.String.GSSPartString(V.local.sPart,V.local.sRev,V.Local.sPart)
+F.Intrinsic.String.LimitSplit(V.Local.sPart,17,V.Local.sPart)
+F.Intrinsic.String.Concat(V.Local.sCustomer,"!*!",V.Local.sPart(0),"!*!",V.local.sPart(1),"!*!",V.local.sDesc,"!*!","Y","!*!","Y",V.Local.sParam)
+
+'F.Intrinsic.ui.Msgbox(V.Local.sParam)
+
+F.Global.General.CallWrapperSync(201500,V.Local.sParam)
+
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Create_Error")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	F.Intrinsic.String.Concat("Error Occured",V.Ambient.ErrorDescription,V.local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndIf
+
+Program.Sub.Load.End
+
+Program.Sub.Comments.Start
+${$0$}$ATG_4094_Quote_History$}$RLK$}$5/27/2016
+${$1$}$$}$$}$3$}$12620$}$OES0201F-SCRIPT-1-HOOK$}$5/27/2016 2:02:21 PM$}$(Program: ORD201; Screen: OES0201F)
+
+${$1$}$$}$$}$2$}$12440$}$OES0201F-POPULATE-HOOK$}$5/27/2016 2:02:04 PM$}$(Program: ORD201; Screen: OES0201F)
+
+${$1$}$$}$$}$1$}$12010$}$OES0201I-POPULATE-HOOK$}$5/27/2016 2:01:47 PM$}$(Program: ORD201; Screen: OES0201I)
+
+${$1$}$$}$$}$0$}$12410$}$OES0201I-SCRIPT-1-HOOK$}$5/27/2016 2:01:26 PM$}$(Program: ORD201; Screen: OES0201I)
+
+Program.Sub.Comments.End
+
